@@ -1,7 +1,7 @@
 # Un Repeater (for mac only)
 
-When you don't want to repeat your tasks again. Un Repeater provides simple control from status bar.
-Start or stop session and repeat it from menu bar itself.
+When you don't want to repeat your most mundane tasks again. Un Repeater provides simple control from status bar.
+Start or stop session with a click.
 
 ## How it works
 1. Drop your scripts in scripts folder and make sure they are numbered
