@@ -13,13 +13,22 @@ const (
 	StopSession  string = "Stop Session"
 )
 
+type CurrentSessionState int
+
+const (
+	SessionInProgress CurrentSessionState = iota + 1
+	SessionStopped
+)
+
 type StartStopSession struct {
-	workerSession *worker.Session
+	workerSession     *worker.Session
+	sessionNotifyChan chan CurrentSessionState
 }
 
-func NewStartStopSession(worker *worker.Session) *StartStopSession {
+func NewStartStopSession(worker *worker.Session, sessionStateListenerChan chan CurrentSessionState) *StartStopSession {
 	return &StartStopSession{
-		workerSession: worker,
+		workerSession:     worker,
+		sessionNotifyChan: sessionStateListenerChan,
 	}
 }
 
@@ -30,6 +39,7 @@ func (ss *StartStopSession) StartSessionMenuItem() menuet.MenuItem {
 			removeStartMenuItem()
 			ss.addStopMenuItem()
 			ss.workerSession.Start()
+			ss.sessionNotifyChan <- SessionInProgress
 		},
 	}
 }
@@ -76,6 +86,7 @@ func (ss *StartStopSession) stopSessionMenuItem() menuet.MenuItem {
 			removeStopMenuItem()
 			ss.addStartMenuItem()
 			ss.workerSession.Stop()
+			ss.sessionNotifyChan <- SessionStopped
 		},
 	}
 }
