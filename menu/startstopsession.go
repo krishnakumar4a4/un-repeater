@@ -1,7 +1,7 @@
 package menu
 
 import (
-	"unrepeater/worker"
+	"github.com/krishnakumar4a4/un-repeater/worker"
 
 	"github.com/caseymrm/menuet"
 )

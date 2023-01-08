@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"time"
-	"unrepeater/menu"
-	"unrepeater/worker"
+
+	"github.com/krishnakumar4a4/un-repeater/menu"
+	"github.com/krishnakumar4a4/un-repeater/worker"
 
 	"github.com/caseymrm/menuet"
 )
@@ -25,7 +26,7 @@ func showMenu() {
 		Title: "UnRepeater",
 	})
 	menuet.App().Children = getMenuItems
-	menuet.App().Label = "UnRepeater"
+	menuet.App().Label = "github.com/krishnakumar4a4/un-repeater"
 }
 
 func getMenuItems() []menuet.MenuItem {

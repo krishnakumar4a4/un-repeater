@@ -1,4 +1,4 @@
-module unrepeater
+module github.com/krishnakumar4a4/un-repeater
 
 go 1.19
 
