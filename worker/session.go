@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"log"
 	"os"
@@ -9,10 +10,12 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 )
 
 type Session struct {
+	doneChan chan int
 }
 
 func NewSession() *Session {
@@ -28,8 +31,49 @@ func (s *Session) Start() {
 	// Also save logs if needed
 
 	log.Println("session started")
+	s.doneChan = make(chan int)
+	s.execScripts(path.Join("scripts", "start-hooks"))
+}
 
-	entries, err := os.ReadDir(path.Join("scripts"))
+func (s *Session) Stop() {
+	log.Println("session stopped")
+	close(s.doneChan)
+	s.execScripts(path.Join("scripts", "stop-hooks"))
+}
+
+func execCmd(ctx context.Context, scriptPath string) {
+	cmd := exec.CommandContext(ctx, scriptPath)
+	wg := &sync.WaitGroup{}
+	stdOutReader, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalf("unable to open stdout pipe: %s", err.Error())
+		return
+	}
+	wg.Add(1)
+	go logStdOut(wg, stdOutReader)
+
+	stdErrReader, err := cmd.StderrPipe()
+	if err != nil {
+		log.Fatalf("unable to open stderr pipe: %s", err.Error())
+		return
+	}
+	wg.Add(1)
+	go logStdErr(wg, stdErrReader)
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("unable to execute script: %s", err.Error())
+	}
+}
+
+func (s *Session) execScripts(dir string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("unable to get current working dir: %s", err.Error())
+		return
+	}
+	scriptsDir := filepath.Join(cwd, dir)
+
+	entries, err := os.ReadDir(scriptsDir)
 	if err != nil {
 		log.Fatalf("unable to open scripts dir: %s", err.Error())
 		return
@@ -40,41 +84,29 @@ func (s *Session) Start() {
 		fileNames = append(fileNames, fName)
 	}
 	sort.Strings(fileNames)
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("unable to get current working dir: %s", err.Error())
-		return
-	}
-	scriptsDir := filepath.Join(cwd, "scripts")
 	for _, fName := range fileNames {
 		scriptPath := filepath.Join(scriptsDir, fName)
-		cmd := exec.Command(scriptPath)
-		wg := &sync.WaitGroup{}
-		stdOutReader, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Fatalf("unable to open stdout pipe: %s", err.Error())
-			return
-		}
-		wg.Add(1)
-		go logStdOut(wg, stdOutReader)
-
-		stdErrReader, err := cmd.StderrPipe()
-		if err != nil {
-			log.Fatalf("unable to open stderr pipe: %s", err.Error())
-			return
-		}
-		wg.Add(1)
-		go logStdErr(wg, stdErrReader)
-
-		if err := cmd.Run(); err != nil {
-			log.Fatalf("unable to execute script: %s", err.Error())
+		ctx := context.Background()
+		go s.cancelContext(ctx)
+		if strings.Contains(fName, ".noblock") {
+			log.Printf("running %s as non block mode\n", scriptPath)
+			go execCmd(ctx, scriptPath)
+		} else {
+			log.Printf("running %s as blocking mode\n", scriptPath)
+			execCmd(ctx, scriptPath)
 		}
 	}
 }
 
-func (s *Session) Stop() {
-	log.Println("session stopped")
+func (s *Session) cancelContext(ctx context.Context) {
+	for {
+		select {
+		case <-s.doneChan:
+			log.Println("closing script context")
+			ctx.Done()
+			return
+		}
+	}
 }
 
 func logStdOut(wg *sync.WaitGroup, readCloser io.ReadCloser) {
