@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"fmt"
+	"bufio"
 	"io"
 	"log"
 	"os"
@@ -25,9 +25,9 @@ func (s *Session) Start() {
 	// Get BLE snoop from report
 	// Get Scenario description
 	// Save/discard capture
-	// Also save logs of needed
+	// Also save logs if needed
 
-	fmt.Println("session started")
+	log.Println("session started")
 
 	entries, err := os.ReadDir(path.Join("scripts"))
 	if err != nil {
@@ -43,7 +43,7 @@ func (s *Session) Start() {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("unable to current working dir: %s", err.Error())
+		log.Fatalf("unable to get current working dir: %s", err.Error())
 		return
 	}
 	scriptsDir := filepath.Join(cwd, "scripts")
@@ -74,29 +74,39 @@ func (s *Session) Start() {
 }
 
 func (s *Session) Stop() {
-	fmt.Println("session stopped")
+	log.Println("session stopped")
 }
 
-// TODO: Can read line by line
 func logStdOut(wg *sync.WaitGroup, readCloser io.ReadCloser) {
 	defer readCloser.Close()
 	defer wg.Done()
-	outData, err := io.ReadAll(readCloser)
-	if err != nil {
+
+	fileScanner := bufio.NewScanner(readCloser)
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		log.Println("STDOUT: " + fileScanner.Text())
+	}
+
+	if err := fileScanner.Err(); err != nil {
 		log.Fatalf("unable to read script stdout: %s", err.Error())
 		return
 	}
-	log.Println("STDOUT: " + string(outData))
 }
 
-// TODO: Can read line by line
 func logStdErr(wg *sync.WaitGroup, readCloser io.ReadCloser) {
 	defer readCloser.Close()
 	defer wg.Done()
-	outData, err := io.ReadAll(readCloser)
-	if err != nil {
+
+	fileScanner := bufio.NewScanner(readCloser)
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		log.Println("STDERR: " + fileScanner.Text())
+	}
+
+	if err := fileScanner.Err(); err != nil {
 		log.Fatalf("unable to read script stderr: %s", err.Error())
 		return
 	}
-	log.Println("STDERR: " + string(outData))
 }
