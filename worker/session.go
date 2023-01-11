@@ -12,10 +12,21 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
+var sessionDataRoot string
+
+func init() {
+	sessionDataRoot = os.Getenv("SESSION_ROOT")
+	if strings.TrimSpace(sessionDataRoot) == "" {
+		sessionDataRoot = "session-data"
+	}
+}
+
 type Session struct {
-	doneChan chan int
+	doneChan          chan int
+	sessionFolderName string
 }
 
 func NewSession() *Session {
@@ -31,6 +42,11 @@ func (s *Session) Start() {
 	// Also save logs if needed
 
 	log.Println("session started")
+	s.sessionFolderName = filepath.Join(sessionDataRoot, time.Now().Format(time.RFC3339))
+	if err := os.MkdirAll(s.sessionFolderName, os.ModePerm); err != nil {
+		log.Fatalf("error creating session folder: %s", err.Error())
+		return
+	}
 	s.doneChan = make(chan int)
 	s.execScripts(path.Join("scripts", "start-hooks"))
 }
@@ -41,8 +57,8 @@ func (s *Session) Stop() {
 	s.execScripts(path.Join("scripts", "stop-hooks"))
 }
 
-func execCmd(ctx context.Context, scriptPath string) {
-	cmd := exec.CommandContext(ctx, scriptPath)
+func execCmd(ctx context.Context, scriptPath, sessionFolderName string) {
+	cmd := exec.CommandContext(ctx, scriptPath, sessionFolderName)
 	wg := &sync.WaitGroup{}
 	stdOutReader, err := cmd.StdoutPipe()
 	if err != nil {
@@ -63,6 +79,9 @@ func execCmd(ctx context.Context, scriptPath string) {
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("unable to execute script: %s", err.Error())
 	}
+	log.Println("Finished executing command waiting for stdout and stderr to close")
+	wg.Wait()
+	log.Println("Finished executing command")
 }
 
 func (s *Session) execScripts(dir string) {
@@ -90,10 +109,10 @@ func (s *Session) execScripts(dir string) {
 		go s.cancelContext(ctx)
 		if strings.Contains(fName, ".noblock") {
 			log.Printf("running %s as non block mode\n", scriptPath)
-			go execCmd(ctx, scriptPath)
+			go execCmd(ctx, scriptPath, s.sessionFolderName)
 		} else {
 			log.Printf("running %s as blocking mode\n", scriptPath)
-			execCmd(ctx, scriptPath)
+			execCmd(ctx, scriptPath, s.sessionFolderName)
 		}
 	}
 }
@@ -121,7 +140,7 @@ func logStdOut(wg *sync.WaitGroup, readCloser io.ReadCloser) {
 	}
 
 	if err := fileScanner.Err(); err != nil {
-		log.Fatalf("unable to read script stdout: %s", err.Error())
+		log.Printf("unable to read script stdout: %s \n", err.Error())
 		return
 	}
 }
@@ -138,7 +157,7 @@ func logStdErr(wg *sync.WaitGroup, readCloser io.ReadCloser) {
 	}
 
 	if err := fileScanner.Err(); err != nil {
-		log.Fatalf("unable to read script stderr: %s", err.Error())
+		log.Printf("unable to read script stderr: %s \n", err.Error())
 		return
 	}
 }

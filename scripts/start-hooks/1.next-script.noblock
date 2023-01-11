@@ -1,6 +1,0 @@
-#!/bin/bash
-
-echo "script 2"
-echo `pwd`
-
-tail -f /dev/null

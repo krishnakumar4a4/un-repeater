@@ -1,0 +1,21 @@
+#!/bin/bash
+# Collect logs here
+SESSION_FOLDER_PATH=$1
+echo "session folder path: ${SESSION_FOLDER_PATH}"
+
+DEVICE_NUM=2
+line=`adb devices -l|grep -w "device"|sed -n ${DEVICE_NUM}p`
+if [[ ! -z $line ]]; then
+    echo "Collecting logs from device ${DEVICE_NUM}" 
+    echo $line;
+    DEVICE_ID=`echo $line|cut -d' ' -f1`
+    START_DATE=`date "+%Y-%m-%d-%H:%M:%S"`
+    DEVICE_MODEL=`echo $line| cut -d' ' -f 5|cut -d':' -f2`
+    
+    LOGFILE_NAME="${SESSION_FOLDER_PATH}/${DEVICE_MODEL}-${START_DATE}.log"
+    echo $LOGFILE_NAME
+    adb -s ${DEVICE_ID} logcat > ${LOGFILE_NAME}
+else 
+    echo "Device ${DEVICE_NUM} not available to collect logs" 
+fi
+echo "Finished log collection from device ${DEVICE_NUM}"
