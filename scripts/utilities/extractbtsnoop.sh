@@ -9,7 +9,7 @@ BTSNOOZ="${BTSNOOZ:-btsnooz.py}"
 
 if ! hash btsnooz.py 2>/dev/null;
 then
-    echo "Please make sure btsnooz.py is in your path before running."
+    echo "ERR: Please make sure btsnooz.py is in your path before running."
     exit 2;
 fi
 
@@ -31,13 +31,13 @@ function ctrl_c() {
 
 if [ ! -f "${BUGREPORT}" ];
 then
-    echo "File ${BUGREPORT} does not exist."
+    echo "ERR: File ${BUGREPORT} does not exist."
     exit 4;
 fi
 
 if [ ! -d "${TMPDIR}" ];
 then
-    echo "Unable to create temp. dir (${TMPDIR}) :("
+    echo "ERR: Unable to create temp. dir (${TMPDIR}) :("
     exit 5;
 fi
 
@@ -46,9 +46,9 @@ then
     unzip "${BUGREPORT}" -d "${TMPDIR}"
     BUGREPORT="${TMPDIR}/`ls ${TMPDIR}|grep ${FILENAME%.*}.*\.txt`"
     if [ "${BUGREPORT: -4}" != ".txt" ];then
+        echo "WARN: bugreport not found with given name, trying again with default name"
         FILENAME="bugreport"
         BUGREPORT="${TMPDIR}/`ls ${TMPDIR}|grep ${FILENAME%.*}.*\.txt`"
-        echo "bugreport not found with given name, trying with default name ${BUGREPORT}"
     fi
 fi
 
@@ -57,13 +57,23 @@ then
     python3 ${BTSNOOZ} "${BUGREPORT}" > "${LOGFILE}"
     if [ ! $? -eq 0 ];
     then
-        echo "Could not extract btsnooz data from ${BUGREPORT}."
+        echo "WARN: Could not extract btsnooz data from ${BUGREPORT}."
+        echo "INFO: Attempting manual search for BLE capture on the zip"
+        CURF_FILE=`find ${TMPDIR} -iname "*.curf"|head -n 1`
+        if [ ! -z "${CURF_FILE}" ];then
+            cp -f ${CURF_FILE} "${ROOT_DIR}/"
+            echo "INFO: Found BLE capture on manual search at ${CURF_FILE}"
+            rm -rf "${TMPDIR}"
+            exit 0
+        else
+            echo "ERR: Attempt to manually find BLE capture also failed"
+        fi
         rm -rf "${TMPDIR}"
         exit 6;
     fi
-    echo "bt snoop generated in ${LOGFILE}"
+    echo "INFO: BT snoop generated in ${LOGFILE}"
 else
-    echo "Looks like there is no plain text bugreport (${BUGREPORT})?"
+    echo "ERR: Looks like there is no plain text bugreport (${BUGREPORT})?"
 fi
 
 rm -rf "${TMPDIR}"
