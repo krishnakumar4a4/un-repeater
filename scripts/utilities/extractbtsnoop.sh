@@ -66,6 +66,13 @@ then
             rm -rf "${TMPDIR}"
             exit 0
         else
+            HCI_LOG=`find ${TMPDIR} -iname "*btsnoop_hci.log"|head -n 1`
+            if [ ! -z "${HCI_LOG}" ];then
+                cp -f ${HCI_LOG} "${ROOT_DIR}/"
+                echo "INFO: Found BLE capture on manual search at ${HCI_LOG}"
+                rm -rf "${TMPDIR}"
+                exit 0
+            fi
             echo "ERR: Attempt to manually find BLE capture also failed"
         fi
         rm -rf "${TMPDIR}"
