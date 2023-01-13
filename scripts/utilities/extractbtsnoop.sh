@@ -7,13 +7,13 @@
 ROOT_DIR=$1
 BTSNOOZ="${BTSNOOZ:-btsnooz.py}"
 
-if ! hash btsnooz.py 2>/dev/null;
+if ! hash ${BTSNOOZ} 2>/dev/null;
 then
     echo "ERR: Please make sure btsnooz.py is in your path before running."
     exit 2;
 fi
 
-if [ $# -eq 0 ];
+if [ $# -lt 2 ];
 then
     echo "Usage: $0 path-to-root-dir bugreport(.txt|.zip)"
     exit 3;
@@ -72,6 +72,18 @@ then
                 echo "INFO: Found BLE capture on manual search at ${HCI_LOG}"
                 rm -rf "${TMPDIR}"
                 exit 0
+            else
+                CFA_COUNT=`find ${TMPDIR} -iname "*.cfa"|wc -l`
+                if [ $CFA_COUNT -ge 1 ]; then
+                    while read CFA_FILE;do
+                        if [ ! -z "${CFA_FILE}" ];then
+                            cp -f ${CFA_FILE} "${ROOT_DIR}/"
+                            echo "INFO: Found BLE capture on manual search at ${CFA_FILE}"
+                        fi
+                    done <<< `find ${TMPDIR} -iname "*.cfa"`
+                    rm -rf "${TMPDIR}"
+                    exit 0
+                fi
             fi
             echo "ERR: Attempt to manually find BLE capture also failed"
         fi
@@ -84,3 +96,4 @@ else
 fi
 
 rm -rf "${TMPDIR}"
+
