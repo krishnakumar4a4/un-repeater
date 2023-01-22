@@ -84,8 +84,8 @@ func (ss *StartStopSession) stopSessionMenuItem() menuet.MenuItem {
 		Text: StopSession,
 		Clicked: func() {
 			removeStopMenuItem()
-			ss.addStartMenuItem()
 			ss.workerSession.Stop()
+			ss.addStartMenuItem()
 			ss.sessionNotifyChan <- SessionStopped
 		},
 	}
