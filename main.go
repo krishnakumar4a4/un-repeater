@@ -17,23 +17,26 @@ func main() {
 	menuet.App().RunApplication()
 }
 
-func getMenuItems() []menuet.MenuItem {
-	items := []menuet.MenuItem{}
-	items = append(items, sessionManagerMenu.StartSessionMenuItem())
-	return items
+func getMenuItems(lister *worker.ScriptLister) func() []menuet.MenuItem {
+	return func() []menuet.MenuItem {
+		items := []menuet.MenuItem{}
+		items = append(items, sessionManagerMenu.StartSessionMenuItem())
+		items = append(items, menu.GetMenuItems(lister)...)
+		return items
+	}
 }
 
 func showTimer(stateChan chan string, closeChan chan int) {
 	ticker := time.NewTicker(time.Second * 5)
 	initValue := time.Now().Unix()
-	currentState := <- stateChan
+	currentState := <-stateChan
 	for {
 		select {
 		case t := <-ticker.C:
 			menuet.App().SetMenuState(&menuet.MenuState{
 				Title: fmt.Sprintf("UnRepeater-%s (%d)s", currentState, t.Unix()-initValue),
 			})
-		case newState := <- stateChan:
+		case newState := <-stateChan:
 			currentState = newState
 		case <-closeChan:
 			<-ticker.C
@@ -67,6 +70,7 @@ func updateSessionStateInLoop(sessionStateListenerChan chan menu.CurrentSessionS
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "UnRepeater",
 				})
+				menuet.App().MenuChanged()
 				close(closeChan)
 			}
 		}
@@ -77,11 +81,13 @@ func showMenu() {
 	sessionMenuActionListenerChan := make(chan menu.CurrentSessionState)
 	go updateSessionStateInLoop(sessionMenuActionListenerChan)
 
-	taskSessionWorker := worker.NewTaskSession()
+	scriptsLister := worker.NewScriptLister()
+
+	taskSessionWorker := worker.NewTaskSession(scriptsLister)
 	sessionManagerMenu = menu.NewSessionManager(taskSessionWorker, sessionMenuActionListenerChan)
 	menuet.App().SetMenuState(&menuet.MenuState{
 		Title: "UnRepeater",
 	})
-	menuet.App().Children = getMenuItems
+	menuet.App().Children = getMenuItems(scriptsLister)
 	menuet.App().Label = "github.com/krishnakumar4a4/un-repeater"
 }

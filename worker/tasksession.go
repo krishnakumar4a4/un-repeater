@@ -25,12 +25,15 @@ func init() {
 }
 
 type TaskSession struct {
+	scriptsLister     *ScriptLister
 	doneChan          chan int
 	sessionFolderName string
 }
 
-func NewTaskSession() *TaskSession {
-	return &TaskSession{}
+func NewTaskSession(scriptsLister *ScriptLister) *TaskSession {
+	return &TaskSession{
+		scriptsLister: scriptsLister,
+	}
 }
 
 func (s *TaskSession) Start() {
@@ -48,13 +51,27 @@ func (s *TaskSession) Start() {
 		return
 	}
 	s.doneChan = make(chan int)
-	s.execScripts(path.Join("scripts", "start-hooks"))
+	scriptsDir, fileNames := s.scriptsLister.ListStartScripts()
+	filteredFilenames := filterScripts(fileNames, s.scriptsLister.GetToggleScripts())
+	s.execScripts(scriptsDir, filteredFilenames)
 }
 
 func (s *TaskSession) Stop() {
 	log.Println("session stopped")
 	close(s.doneChan)
-	s.execScripts(path.Join("scripts", "stop-hooks"))
+	scriptsDir, fileNames := s.scriptsLister.ListStopScripts()
+	filteredFilenames := filterScripts(fileNames, s.scriptsLister.GetToggleScripts())
+	s.execScripts(scriptsDir, filteredFilenames)
+}
+
+func filterScripts(fileNames []string, toggleScripts map[string]bool) []string {
+	filteredFileNames := make([]string, 0, len(fileNames))
+	for _, fName := range fileNames {
+		if v, ok := toggleScripts[fName]; !ok || v {
+			filteredFileNames = append(filteredFileNames, fName)
+		}
+	}
+	return filteredFileNames
 }
 
 func execCmd(ctx context.Context, scriptPath, sessionFolderName string) {
@@ -84,24 +101,7 @@ func execCmd(ctx context.Context, scriptPath, sessionFolderName string) {
 	log.Println("Finished executing command")
 }
 
-func (s *TaskSession) execScripts(dir string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("unable to get current working dir: %s", err.Error())
-		return
-	}
-	scriptsDir := filepath.Join(cwd, dir)
-
-	entries, err := os.ReadDir(scriptsDir)
-	if err != nil {
-		log.Fatalf("unable to open scripts dir: %s", err.Error())
-		return
-	}
-	fileNames := make([]string, 0, len(entries))
-	for _, elem := range entries {
-		fName := elem.Name()
-		fileNames = append(fileNames, fName)
-	}
+func (s *TaskSession) execScripts(scriptsDir string, fileNames []string) {
 	sort.Strings(fileNames)
 	for _, fName := range fileNames {
 		scriptPath := filepath.Join(scriptsDir, fName)
@@ -162,4 +162,60 @@ func logStdErr(wg *sync.WaitGroup, readCloser io.ReadCloser) {
 		log.Printf("unable to read script stderr: %s \n", err.Error())
 		return
 	}
+}
+
+type ScriptLister struct {
+	toggledScripts map[string]bool
+	workingDir     string
+}
+
+func NewScriptLister() *ScriptLister {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("unable to get current working dir: %s", err.Error())
+		return nil
+	}
+	return &ScriptLister{
+		toggledScripts: make(map[string]bool),
+		workingDir:     cwd,
+	}
+}
+
+// Exported functions
+func (sl *ScriptLister) ListStartScripts() (string, []string) {
+	return sl.listScripts(path.Join("scripts", "start-hooks"))
+}
+
+func (sl *ScriptLister) ListStopScripts() (string, []string) {
+	return sl.listScripts(path.Join("scripts", "stop-hooks"))
+}
+
+func (sl *ScriptLister) GetToggleScripts() map[string]bool {
+	return sl.toggledScripts
+}
+
+func (sl *ScriptLister) ToggleScript(name string) {
+	if v, ok := sl.toggledScripts[name]; ok {
+		log.Printf("script %s already exists in toggle list, changing state from %v", name, v)
+		sl.toggledScripts[name] = !v
+	} else {
+		log.Printf("script %s do not exist in toggle list adding to toggle list", name)
+		sl.toggledScripts[name] = false
+	}
+}
+
+func (sl *ScriptLister) listScripts(dir string) (string, []string) {
+	scriptsDir := filepath.Join(sl.workingDir, dir)
+	entries, err := os.ReadDir(scriptsDir)
+	if err != nil {
+		log.Fatalf("unable to open scripts dir: %s", err.Error())
+		return scriptsDir, nil
+	}
+	fileNames := make([]string, 0, len(entries))
+	for _, elem := range entries {
+		fName := elem.Name()
+		fileNames = append(fileNames, fName)
+	}
+	sort.Strings(fileNames)
+	return scriptsDir, fileNames
 }

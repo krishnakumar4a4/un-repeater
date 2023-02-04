@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "This script execution should have been skipped as the filename ends with suffix .skip"
