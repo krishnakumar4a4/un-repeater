@@ -23,3 +23,13 @@ Run a bunch of scripts without switching tabs, by simply clicking from status ba
 
 ### Stop session from status bar
 ![Stop Session](./stop-session.png)
+
+## Roadmap
+- Support for notifications
+- Configurability using status bar Menu
+- External configuration
+- CLI support
+- Icon support
+- Installable binary
+- Pre defined templates for scripts
+- Multi platform support
