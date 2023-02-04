@@ -11,6 +11,7 @@ import (
 )
 
 var sessionManagerMenu *menu.SessionManager
+var sessionState menu.CurrentSessionState
 
 func main() {
 	go showMenu()
@@ -20,7 +21,11 @@ func main() {
 func getMenuItems(lister *worker.ScriptLister) func() []menuet.MenuItem {
 	return func() []menuet.MenuItem {
 		items := []menuet.MenuItem{}
-		items = append(items, sessionManagerMenu.StartSessionMenuItem())
+		if sessionState == menu.SessionInProgress {
+			items = append(items, sessionManagerMenu.StopSessionMenuItem())
+		} else {
+			items = append(items, sessionManagerMenu.StartSessionMenuItem())
+		}
 		items = append(items, menu.GetMenuItems(lister)...)
 		return items
 	}
@@ -54,6 +59,7 @@ func updateSessionStateInLoop(sessionStateListenerChan chan menu.CurrentSessionS
 		case state := <-sessionStateListenerChan:
 			switch state {
 			case menu.SessionInProgress:
+				sessionState = menu.SessionInProgress
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "UnRepeater-Running",
 				})
@@ -62,11 +68,13 @@ func updateSessionStateInLoop(sessionStateListenerChan chan menu.CurrentSessionS
 				stateChan <- "Running"
 				go showTimer(stateChan, closeChan)
 			case menu.SessionStopInProgress:
+				sessionState = menu.SessionStopInProgress
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "UnRepeater-Stopping",
 				})
 				stateChan <- "Stopping"
 			case menu.SessionStopped:
+				sessionState = menu.SessionStopped
 				menuet.App().SetMenuState(&menuet.MenuState{
 					Title: "UnRepeater",
 				})
