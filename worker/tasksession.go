@@ -107,9 +107,11 @@ func (s *TaskSession) execScripts(dir string) {
 		scriptPath := filepath.Join(scriptsDir, fName)
 		ctx := context.Background()
 		go s.cancelContext(ctx)
-		if strings.Contains(fName, ".noblock") {
+		if strings.HasSuffix(fName, ".noblock") {
 			log.Printf("running %s as non block mode\n", scriptPath)
 			go execCmd(ctx, scriptPath, s.sessionFolderName)
+		} else if strings.HasSuffix(fName, ".skip") {
+			log.Printf("skipping %s as its marked as .skip\n", scriptPath)
 		} else {
 			log.Printf("running %s as blocking mode\n", scriptPath)
 			execCmd(ctx, scriptPath, s.sessionFolderName)
