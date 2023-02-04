@@ -24,16 +24,16 @@ func init() {
 	}
 }
 
-type Session struct {
+type TaskSession struct {
 	doneChan          chan int
 	sessionFolderName string
 }
 
-func NewSession() *Session {
-	return &Session{}
+func NewTaskSession() *TaskSession {
+	return &TaskSession{}
 }
 
-func (s *Session) Start() {
+func (s *TaskSession) Start() {
 	// Start capture session
 	// Collect bug reports
 	// Get BLE snoop from report
@@ -51,7 +51,7 @@ func (s *Session) Start() {
 	s.execScripts(path.Join("scripts", "start-hooks"))
 }
 
-func (s *Session) Stop() {
+func (s *TaskSession) Stop() {
 	log.Println("session stopped")
 	close(s.doneChan)
 	s.execScripts(path.Join("scripts", "stop-hooks"))
@@ -84,7 +84,7 @@ func execCmd(ctx context.Context, scriptPath, sessionFolderName string) {
 	log.Println("Finished executing command")
 }
 
-func (s *Session) execScripts(dir string) {
+func (s *TaskSession) execScripts(dir string) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("unable to get current working dir: %s", err.Error())
@@ -117,7 +117,7 @@ func (s *Session) execScripts(dir string) {
 	}
 }
 
-func (s *Session) cancelContext(ctx context.Context) {
+func (s *TaskSession) cancelContext(ctx context.Context) {
 	for {
 		select {
 		case <-s.doneChan:

@@ -10,32 +10,36 @@ import (
 	"github.com/caseymrm/menuet"
 )
 
-var sessionMenu *menu.StartStopSession
+var sessionManagerMenu *menu.SessionManager
 
 func main() {
 	go showMenu()
 	menuet.App().RunApplication()
 }
 
-func showMenu() {
-	workerSession := worker.NewSession()
-	sessionListenerChan := make(chan menu.CurrentSessionState)
-	go updateSessionState(sessionListenerChan)
-	sessionMenu = menu.NewStartStopSession(workerSession, sessionListenerChan)
-	menuet.App().SetMenuState(&menuet.MenuState{
-		Title: "UnRepeater",
-	})
-	menuet.App().Children = getMenuItems
-	menuet.App().Label = "github.com/krishnakumar4a4/un-repeater"
-}
-
 func getMenuItems() []menuet.MenuItem {
 	items := []menuet.MenuItem{}
-	items = append(items, sessionMenu.StartSessionMenuItem())
+	items = append(items, sessionManagerMenu.StartSessionMenuItem())
 	return items
 }
 
-func updateSessionState(sessionStateListenerChan chan menu.CurrentSessionState) {
+func showTimer(closeChan chan int) {
+	ticker := time.NewTicker(time.Second * 5)
+	initValue := time.Now().Unix()
+	for {
+		select {
+		case t := <-ticker.C:
+			menuet.App().SetMenuState(&menuet.MenuState{
+				Title: fmt.Sprintf("UnRepeater-Running (%d)s", t.Unix()-initValue),
+			})
+		case <-closeChan:
+			<-ticker.C
+			return
+		}
+	}
+}
+
+func updateSessionStateInLoop(sessionStateListenerChan chan menu.CurrentSessionState) {
 	var closeChan chan int
 	for {
 		select {
@@ -57,18 +61,15 @@ func updateSessionState(sessionStateListenerChan chan menu.CurrentSessionState) 
 	}
 }
 
-func showTimer(closeChan chan int) {
-	ticker := time.NewTicker(time.Second * 5)
-	initValue := time.Now().Unix()
-	for {
-		select {
-		case t := <-ticker.C:
-			menuet.App().SetMenuState(&menuet.MenuState{
-				Title: fmt.Sprintf("UnRepeater-Running (%d)s", t.Unix()-initValue),
-			})
-		case <-closeChan:
-			<-ticker.C
-			return
-		}
-	}
+func showMenu() {
+	sessionListenerChan := make(chan menu.CurrentSessionState)
+	go updateSessionStateInLoop(sessionListenerChan)
+
+	taskSessionWorker := worker.NewTaskSession()
+	sessionManagerMenu = menu.NewSessionManager(taskSessionWorker, sessionListenerChan)
+	menuet.App().SetMenuState(&menuet.MenuState{
+		Title: "UnRepeater",
+	})
+	menuet.App().Children = getMenuItems
+	menuet.App().Label = "github.com/krishnakumar4a4/un-repeater"
 }

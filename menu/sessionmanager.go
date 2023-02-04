@@ -9,8 +9,8 @@ import (
 type SessionStates string
 
 const (
-	StartSession string = "Start Session"
-	StopSession  string = "Stop Session"
+	StartSession SessionStates = "Start Session"
+	StopSession  SessionStates = "Stop Session"
 )
 
 type CurrentSessionState int
@@ -20,21 +20,21 @@ const (
 	SessionStopped
 )
 
-type StartStopSession struct {
-	workerSession     *worker.Session
+type SessionManager struct {
+	workerSession     *worker.TaskSession
 	sessionNotifyChan chan CurrentSessionState
 }
 
-func NewStartStopSession(worker *worker.Session, sessionStateListenerChan chan CurrentSessionState) *StartStopSession {
-	return &StartStopSession{
+func NewSessionManager(worker *worker.TaskSession, sessionStateListenerChan chan CurrentSessionState) *SessionManager {
+	return &SessionManager{
 		workerSession:     worker,
 		sessionNotifyChan: sessionStateListenerChan,
 	}
 }
 
-func (ss *StartStopSession) StartSessionMenuItem() menuet.MenuItem {
+func (ss *SessionManager) StartSessionMenuItem() menuet.MenuItem {
 	return menuet.MenuItem{
-		Text: StartSession,
+		Text: string(StartSession),
 		Clicked: func() {
 			removeStartMenuItem()
 			ss.addStopMenuItem()
@@ -48,7 +48,7 @@ func removeStartMenuItem() {
 	items := menuet.App().Children()
 	updatedItems := []menuet.MenuItem{}
 	for _, item := range items {
-		if item.Text == StartSession {
+		if item.Text == string(StartSession) {
 			continue
 		}
 		updatedItems = append(updatedItems, item)
@@ -56,11 +56,11 @@ func removeStartMenuItem() {
 	menuet.App().Children = func() []menuet.MenuItem { return updatedItems }
 }
 
-func (ss *StartStopSession) addStopMenuItem() {
+func (ss *SessionManager) addStopMenuItem() {
 	items := menuet.App().Children()
 	updatedItems := []menuet.MenuItem{}
 	for _, item := range items {
-		if item.Text == StopSession {
+		if item.Text == string(StopSession) {
 			continue
 		}
 		updatedItems = append(updatedItems, item)
@@ -69,11 +69,11 @@ func (ss *StartStopSession) addStopMenuItem() {
 	menuet.App().Children = func() []menuet.MenuItem { return updatedItems }
 }
 
-func (ss *StartStopSession) stopSessionMenuItem() menuet.MenuItem {
+func (ss *SessionManager) stopSessionMenuItem() menuet.MenuItem {
 	items := menuet.App().Children()
 	updatedItems := []menuet.MenuItem{}
 	for _, item := range items {
-		if item.Text == StartSession {
+		if item.Text == string(StartSession) {
 			continue
 		}
 		updatedItems = append(updatedItems, item)
@@ -81,7 +81,7 @@ func (ss *StartStopSession) stopSessionMenuItem() menuet.MenuItem {
 	menuet.App().Children = func() []menuet.MenuItem { return updatedItems }
 
 	return menuet.MenuItem{
-		Text: StopSession,
+		Text: string(StopSession),
 		Clicked: func() {
 			removeStopMenuItem()
 			ss.workerSession.Stop()
@@ -95,7 +95,7 @@ func removeStopMenuItem() {
 	items := menuet.App().Children()
 	updatedItems := []menuet.MenuItem{}
 	for _, item := range items {
-		if item.Text == StopSession {
+		if item.Text == string(StopSession) {
 			continue
 		}
 		updatedItems = append(updatedItems, item)
@@ -103,11 +103,11 @@ func removeStopMenuItem() {
 	menuet.App().Children = func() []menuet.MenuItem { return updatedItems }
 }
 
-func (ss *StartStopSession) addStartMenuItem() {
+func (ss *SessionManager) addStartMenuItem() {
 	items := menuet.App().Children()
 	updatedItems := []menuet.MenuItem{}
 	for _, item := range items {
-		if item.Text == StopSession {
+		if item.Text == string(StopSession) {
 			continue
 		}
 		updatedItems = append(updatedItems, item)
