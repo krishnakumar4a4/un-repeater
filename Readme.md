@@ -19,13 +19,17 @@ Run a bunch of scripts without switching tabs, by simply clicking from status ba
 3. From status bar, you can start or stop a session
 4. Start & stop scripts are also listed in the menu dropdown. You can selectively enable/disable certain script.
 
-## Screenshots
+
+# Screenshots
 
 ### Start session from status bar
 ![Start Session](./start-session.png)
 
 ### Stop session from status bar
 ![Stop Session](./stop-session.png)
+
+### View & toggle scripts from status bar
+![View & Toggle Scripts](./toggle-scripts.png)
 
 ## Roadmap
 - Support for notifications
