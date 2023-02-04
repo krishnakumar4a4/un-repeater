@@ -1,7 +1,11 @@
 # Un Repeater (for mac only)
 
 When you don't want to repeat your most mundane tasks again. Un Repeater provides simple control from status bar.
-Start or stop session with a click.
+Run a bunch of scripts without switching tabs, by simply clicking from status bar.
+
+### Ergonomic benefits (personal opinions though)
+- You don't have to switch the tab or window. You do 2 less `Cmd + Tab` presses every time.
+- Minimises visual context switching and keeps your focus intact.
 
 ## How it works
 1. Drop your scripts in scripts folder and make sure they are numbered
