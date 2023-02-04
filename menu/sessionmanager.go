@@ -17,6 +17,7 @@ type CurrentSessionState int
 
 const (
 	SessionInProgress CurrentSessionState = iota + 1
+	SessionStopInProgress
 	SessionStopped
 )
 
@@ -84,6 +85,7 @@ func (ss *SessionManager) stopSessionMenuItem() menuet.MenuItem {
 		Text: string(StopSession),
 		Clicked: func() {
 			removeStopMenuItem()
+			ss.sessionNotifyChan <- SessionStopInProgress
 			ss.workerSession.Stop()
 			ss.addStartMenuItem()
 			ss.sessionNotifyChan <- SessionStopped
