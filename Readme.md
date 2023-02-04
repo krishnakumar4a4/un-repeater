@@ -17,6 +17,7 @@ Run a bunch of scripts without switching tabs, by simply clicking from status ba
         - if you want to skip a start/stop hook script from execution, simply suffix it with `.skip`  
 2. Run the program from CLI `SESSION_ROOT="session-data" go run main.go`. Where $SESSION_ROOT refers to folder in which collected session details will be preserved
 3. From status bar, you can start or stop a session
+4. Start & stop scripts are also listed in the menu dropdown. You can selectively enable/disable certain script.
 
 ## Screenshots
 

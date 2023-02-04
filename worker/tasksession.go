@@ -214,7 +214,10 @@ func (sl *ScriptLister) listScripts(dir string) (string, []string) {
 	fileNames := make([]string, 0, len(entries))
 	for _, elem := range entries {
 		fName := elem.Name()
-		fileNames = append(fileNames, fName)
+		// .skip suffixed files are skipped
+		if !strings.HasSuffix(fName, ".skip") {
+			fileNames = append(fileNames, fName)
+		}
 	}
 	sort.Strings(fileNames)
 	return scriptsDir, fileNames
