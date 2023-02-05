@@ -31,16 +31,33 @@ func getMenuItems(lister *worker.ScriptLister) func() []menuet.MenuItem {
 	}
 }
 
+func alertIfNeeded(counter int) {
+	fiveMinCounter := counter % 60
+	if counter > 0 && fiveMinCounter == 0 {
+		menuet.App().Alert(menuet.Alert{
+			MessageText:     "Looks like Un Repeater is running for long time!!",
+			InformativeText: fmt.Sprintf("Total running time so far is %d mins", int(time.Duration(counter*5*int(time.Second)).Minutes())),
+		})
+		menuet.App().Notification(menuet.Notification{
+			Title:    "Looks like Un Repeater is running for long time!!",
+			Subtitle: fmt.Sprintf("Total running time so far is %d mins", int(time.Duration(counter*5*int(time.Second)).Minutes())),
+		})
+	}
+}
+
 func showTimer(stateChan chan string, closeChan chan int) {
 	ticker := time.NewTicker(time.Second * 5)
 	initValue := time.Now().Unix()
 	currentState := <-stateChan
+	tickCounter := 0
 	for {
 		select {
 		case t := <-ticker.C:
+			alertIfNeeded(tickCounter)
 			menuet.App().SetMenuState(&menuet.MenuState{
 				Title: fmt.Sprintf("UnRepeater-%s (%d)s", currentState, t.Unix()-initValue),
 			})
+			tickCounter++
 		case newState := <-stateChan:
 			currentState = newState
 		case <-closeChan:
